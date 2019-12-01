@@ -1,6 +1,6 @@
-# [Project Name Here]
+# [Demo for hexagon grid map]
 
-[placeholder]
+This is a Demo for hexagon grid map which will be used in the "Bewitch" project.
 
 ## To Build
 
