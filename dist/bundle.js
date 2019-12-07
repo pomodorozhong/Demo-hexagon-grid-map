@@ -65,6 +65,16 @@ class HexagonMapDrawer {
             }
         });
     }
+    clear() {
+        if (document.getElementById('container') == null) {
+            let container = document.createElement('div');
+            container.id = 'container';
+            document.body.appendChild(container);
+        }
+        else {
+            document.getElementById('container').innerHTML = "";
+        }
+    }
     drawObject(map, x_map, y_map, x_draw_offset, y_draw_offset, width, height, image_name) {
         let cells = map.getCells();
         let is_it_there = false;
@@ -117,7 +127,50 @@ class HexagonMapDrawer {
 }
 exports.HexagonMapDrawer = HexagonMapDrawer;
 
-},{"./Perspective.js":2}],2:[function(require,module,exports){
+},{"./Perspective.js":3}],2:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const HexagonCell_1 = require("./hex_map_core/HexagonCell");
+class HexagonMapProcessor {
+    constructor() {
+        this.max_hole_count_per_col = 0;
+        this.possibility_to_see_a_hole = 0;
+    }
+    updateMap(map) {
+        for (let index = map.cells.length - 1; index >= 0; index--) {
+            if (map.cells[index].x === 0) {
+                map.cells.splice(index, 1);
+            }
+            else {
+                map.cells[index].x -= 1;
+            }
+        }
+        map.is_first_col_a_little_col = !map.is_first_col_a_little_col;
+        let initial_y;
+        if (map.col_count % 2 == 1) {
+            initial_y = map.is_first_col_a_little_col == true ? 1 : 0;
+        }
+        else {
+            initial_y = map.is_first_col_a_little_col == true ? 0 : 1;
+        }
+        let hole_count = 0;
+        for (let y = initial_y; y < map.row_count; y += 2) {
+            if (hole_count < this.max_hole_count_per_col) {
+                if (Math.random() < this.possibility_to_see_a_hole) {
+                    hole_count++;
+                    continue;
+                }
+            }
+            let cell = new HexagonCell_1.HexagonCell();
+            cell.x = map.col_count - 1;
+            cell.y = y;
+            map.cells.push(cell);
+        }
+    }
+}
+exports.HexagonMapProcessor = HexagonMapProcessor;
+
+},{"./hex_map_core/HexagonCell":4}],3:[function(require,module,exports){
 (function (global){
 (function (f) { if (typeof exports === "object" && typeof module !== "undefined") {
     module.exports = f();
@@ -344,7 +397,7 @@ else {
 });
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],3:[function(require,module,exports){
+},{}],4:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 class HexagonCell {
@@ -355,7 +408,7 @@ class HexagonCell {
 }
 exports.HexagonCell = HexagonCell;
 
-},{}],4:[function(require,module,exports){
+},{}],5:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const HexagonCell_1 = require("./HexagonCell");
@@ -363,15 +416,16 @@ class HexagonMap {
     constructor(row_count, col_count) {
         this.row_count = row_count;
         this.col_count = col_count;
+        this.is_first_col_a_little_col = true;
         // grid initialization
         this.cells = new Array();
         for (let col = 0; col < col_count; col++) {
             let init_row;
             if (col % 2 == 0) {
-                init_row = 1;
+                init_row = this.is_first_col_a_little_col == true ? 1 : 0;
             }
             else {
-                init_row = 0;
+                init_row = this.is_first_col_a_little_col == true ? 0 : 1;
             }
             for (let row = init_row; row < row_count; row += 2) {
                 let cell = new HexagonCell_1.HexagonCell();
@@ -388,17 +442,21 @@ class HexagonMap {
 }
 exports.HexagonMap = HexagonMap;
 
-},{"./HexagonCell":3}],5:[function(require,module,exports){
+},{"./HexagonCell":4}],6:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const HexagonMap_1 = require("./hex_map_core/HexagonMap");
 const HexagonMapDrawer_1 = require("./HexagonMapDrawer");
+const HexagonMapProcessor_1 = require("./HexagonMapProcessor");
 let map;
 let drawer;
+let processor;
 function initialization() {
-    // setup map
-    map = new HexagonMap_1.HexagonMap(9, 7);
-    // setup drawer
+    // Setup map
+    let row_count = 9;
+    let col_count = 7;
+    map = new HexagonMap_1.HexagonMap(row_count, col_count);
+    // Setup drawer
     drawer = new HexagonMapDrawer_1.HexagonMapDrawer();
     let flatness = 0.7;
     let grid_width = 100;
@@ -407,14 +465,26 @@ function initialization() {
     let FRAME_WIDTH = 1000;
     let origin_x = FRAME_WIDTH / 2;
     let origin_y = 50;
-    let is_draw_coordinate = true;
+    let is_draw_coordinate = false;
     drawer.setupParameter(flatness, grid_width, grid_width_coefficient, grid_height_coefficient, origin_x, origin_y, is_draw_coordinate);
     let is_random_mode = false;
     let random_image_count = 3;
     drawer.setupRandomMode(is_random_mode, random_image_count);
-    // draw
+    // Draw
     drawer.draw(map);
+    // Add Click Event Listener
+    processor = new HexagonMapProcessor_1.HexagonMapProcessor();
+    processor.max_hole_count_per_col = 1; // 每欄最多 1 個破洞
+    processor.possibility_to_see_a_hole = 0.2; // 破洞機率 20%
+    addListener();
+}
+function addListener() {
+    document.getElementsByTagName('button')[0].addEventListener('click', () => {
+        processor.updateMap(map);
+        drawer.clear();
+        drawer.draw(map);
+    });
 }
 initialization();
 
-},{"./HexagonMapDrawer":1,"./hex_map_core/HexagonMap":4}]},{},[5]);
+},{"./HexagonMapDrawer":1,"./HexagonMapProcessor":2,"./hex_map_core/HexagonMap":5}]},{},[6]);
