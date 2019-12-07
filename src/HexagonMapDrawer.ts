@@ -104,6 +104,16 @@ export class HexagonMapDrawer {
             }
         });
     }
+    public clear() {
+        if (document.getElementById('container') == null) {
+            let container: HTMLDivElement = document.createElement('div');
+            container.id = 'container';
+            document.body.appendChild(container);
+        }
+        else {
+            document.getElementById('container').innerHTML = "";
+        }
+    }
     public drawObject(
         map: HexagonMap,
         x_map: number,
